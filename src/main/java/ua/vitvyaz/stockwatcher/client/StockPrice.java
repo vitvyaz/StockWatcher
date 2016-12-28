@@ -1,9 +1,11 @@
 package ua.vitvyaz.stockwatcher.client;
 
+import java.io.Serializable;
+
 /**
  * Created by Виталий on 16.12.2016.
  */
-public class StockPrice {
+public class StockPrice implements Serializable {
     private String symbol;
     private double price;
     private double change;
