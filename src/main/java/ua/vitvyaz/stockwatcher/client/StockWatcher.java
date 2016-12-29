@@ -24,6 +24,7 @@ public class StockWatcher implements EntryPoint {
     private Label lastUpdatedLabel = new Label();
     private ArrayList<String> stocks = new ArrayList<>();
     private StockPriceServiceAsync stockPriceSvc = GWT.create(StockPriceService.class);
+    private Label errorMsgLabel = new Label();
 
     /**
      * Entry point method.
@@ -51,6 +52,10 @@ public class StockWatcher implements EntryPoint {
         addPanel.addStyleName("addPanel");
 
         // Assemble Main panel.
+        errorMsgLabel.setStyleName("errorMessage");
+        errorMsgLabel.setVisible(false);
+
+        mainPanel.add(errorMsgLabel);
         mainPanel.add(stocksFlexTable);
         mainPanel.add(addPanel);
         mainPanel.add(lastUpdatedLabel);
@@ -148,6 +153,14 @@ public class StockWatcher implements EntryPoint {
         AsyncCallback<StockPrice[]> callback = new AsyncCallback<StockPrice[]>() {
             public void onFailure(Throwable caught) {
                 // TODO: Do something with errors.
+                // If the stock code is in the list of delisted codes, display an error message.
+                String details = caught.getMessage();
+                if (caught instanceof DelistedExeption) {
+                    details = "Company '" + ((DelistedExeption) caught).getSymbol() + "' was delisted";
+                }
+
+                errorMsgLabel.setText("Error: " + details);
+                errorMsgLabel.setVisible(true);
             }
 
             public void onSuccess(StockPrice[] result) {
@@ -162,8 +175,7 @@ public class StockWatcher implements EntryPoint {
     /**
      * Update the Price and Change fields all the rows in the stock table.
      *
-     * @param prices
-     *          Stock data for all rows.
+     * @param prices Stock data for all rows.
      */
     private void updateTable(StockPrice[] prices) {
         for (int i = 0; i < prices.length; i++) {
@@ -171,10 +183,11 @@ public class StockWatcher implements EntryPoint {
         }
 
         // Display timestamp showing last refresh.
-        DateTimeFormat dateFormat = DateTimeFormat.getFormat(
-                DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
-        lastUpdatedLabel.setText("Last update : "
-                + dateFormat.format(new Date()));
+        DateTimeFormat dateFormat = DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
+        lastUpdatedLabel.setText("Last update : " + dateFormat.format(new Date()));
+
+        //Clear any errors.
+        errorMsgLabel.setVisible(false);
     }
 
     /**
@@ -198,15 +211,14 @@ public class StockWatcher implements EntryPoint {
 
         // Populate the Price and Change fields with new data.
         stocksFlexTable.setText(row, 1, priceText);
-        Label changeWidget = (Label)stocksFlexTable.getWidget(row, 2);
+        Label changeWidget = (Label) stocksFlexTable.getWidget(row, 2);
         changeWidget.setText(changeText + " (" + changePercentText + "%)");
 
         // Change the color of text in the Change field based on its value.
         String changeStyleName = "noChange";
         if (price.getChangePercent() < -0.1f) {
             changeStyleName = "negativeChange";
-        }
-        else if (price.getChangePercent() > 0.1f) {
+        } else if (price.getChangePercent() > 0.1f) {
             changeStyleName = "positiveChange";
         }
 
